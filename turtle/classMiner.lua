@@ -1132,26 +1132,46 @@ function Miner:getFuel()
 
 		local isInQueue = false
 		
-		if config.stations.refuelQueue and config.stations.refuelQueue.origin then 
-			local tries = 0
-			local origin = config.stations.refuelQueue.origin
-			local maxDistance = config.stations.refuelQueue.maxDistance or 8
-			repeat 
-				tries = tries + 1
-				local randomPosition = vector.new(
-					math.random(origin.x-maxDistance, origin.x+maxDistance),
-					origin.y,
-					math.random(origin.z-maxDistance, origin.z+maxDistance)
-				)
-				print("moving to queue", randomPosition)
-				isInQueue = self:navigateToPos(randomPosition.x, randomPosition.y, randomPosition.z)
-				if not isInQueue and tries > 3 then
-					print("cant reach refuel queue")
-					isInQueue = true -- set to true anyways, should be nearby the queue
-					-- return false-- only leave pcall function !
-					break
-				end
-			until isInQueue
+		if config.stations.refuelQueue then
+			local queueCfg = config.stations.refuelQueue
+			local queuePositions = queueCfg.positions
+
+			if queuePositions and #queuePositions > 0 then
+				local tries = 0
+				repeat
+					tries = tries + 1
+					local idx = math.random(1, #queuePositions)
+					local p = queuePositions[idx]
+					if p then
+						print("moving to queue", p.x .. "," .. p.y .. "," .. p.z)
+						isInQueue = self:navigateToPos(p.x, p.y, p.z)
+					end
+					if not isInQueue and tries > 3 then
+						print("cant reach refuel queue")
+						isInQueue = true -- set to true anyways, should be nearby the queue
+						break
+					end
+				until isInQueue
+			elseif queueCfg.origin then
+				local tries = 0
+				local origin = queueCfg.origin
+				local maxDistance = queueCfg.maxDistance or 8
+				repeat
+					tries = tries + 1
+					local randomPosition = vector.new(
+						math.random(origin.x-maxDistance, origin.x+maxDistance),
+						origin.y,
+						math.random(origin.z-maxDistance, origin.z+maxDistance)
+					)
+					print("moving to queue", randomPosition)
+					isInQueue = self:navigateToPos(randomPosition.x, randomPosition.y, randomPosition.z)
+					if not isInQueue and tries > 3 then
+						print("cant reach refuel queue")
+						isInQueue = true -- set to true anyways, should be nearby the queue
+						break
+					end
+				until isInQueue
+			end
 		end
 
 		local useRandomStation = not isInQueue
