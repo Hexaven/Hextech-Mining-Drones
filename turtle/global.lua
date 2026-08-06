@@ -12,6 +12,24 @@ nodeStorage = nil
 turtleStorage = nil
 
 
+local _logFile = "log.txt"
+local function _ts()
+	local t = os.time()
+	return string.format("[%02d:%02d:%02d]", math.floor(t/3600)%24, math.floor(t/60)%60, math.floor(t)%60)
+end
+
+log = function(...)
+	local f = fs.open(_logFile, "a")
+	if f then
+		f.writeLine(_ts() .. " " .. table.concat({...}, " "))
+		f.close()
+	end
+end
+
+local _f = fs.open(_logFile, "w")
+if _f then _f.close() end
+
+
 handleError = function(err,status)
 	if not status then
 		if err.text == nil then

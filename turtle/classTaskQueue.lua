@@ -131,8 +131,10 @@ function TaskQueue:executeNext()
 	local task = table.remove(tasks, 1)
 	self:save()
 	if task.type and task.type == "direct" then 
+		log("TASK: " .. (task.funcName or task.command or "?"))
 		self:executeDirectTask(task)
 	else
+		log("TASK: " .. (task.funcName or task.taskName or "?") .. " id=" .. tostring(task.id))
 		task:execute()
 	end
 

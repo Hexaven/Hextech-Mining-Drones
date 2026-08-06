@@ -17,40 +17,39 @@ function Logger:new(fileName)
 end
 
 function Logger:initialize()
-	self.f = fs.open(self.fileName, "w")
+	local f = fs.open(self.fileName, "w")
+	if f then f.close() end
 end
 
-function Logger:save(fileName)
-	fileName = fileName or self.fileName
-	if not self.f then 
-		if fs.exists(fileName) then
-			self.f = fs.open(fileName, "a")
-		else
-			self.f = fs.open(fileName, "w")
-		end
-	end
-
-	if self.f then 
-		self.f.write(textutils.serialize(self.log))
-		self.f.close()
-		self.f = nil
-		return true
-	else
-		print("ERROR, UNABLE TO OPEN LOG FILE", fileName)
-		return false
-	end
+function Logger:_timestamp()
+	local t = os.time()
+	return string.format("[%02d:%02d:%02d]", math.floor(t/3600)%24, math.floor(t/60)%60, math.floor(t)%60)
 end
 
 function Logger:add(...)
-	local entry = {...}
-	local txt = table.concat(entry, "\t")
+	local parts = {...}
+	local txt = table.concat(parts, " ")
 	table.insert(self.log, txt)
+	local f = fs.open(self.fileName, "a")
+	if f then
+		f.writeLine(self:_timestamp() .. " " .. txt)
+		f.close()
+	end
 end
 
 function Logger:addFirst(...)
-	local entry = {...}
-	local txt = table.concat(entry, "\t")
+	local parts = {...}
+	local txt = table.concat(parts, " ")
 	table.insert(self.log, 1, txt)
+	local f = fs.open(self.fileName, "a")
+	if f then
+		f.writeLine(self:_timestamp() .. " " .. txt)
+		f.close()
+	end
+end
+
+function Logger:save(fileName)
+	-- kept for compatibility, no-op since entries are written immediately
 end
 
 function Logger:print()

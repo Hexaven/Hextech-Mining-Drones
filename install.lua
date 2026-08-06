@@ -1,10 +1,9 @@
 
 -- installation using github for the host computer
 
-local git = "https://raw.githubusercontent.com/helpmyRF24isntworking/computercraft/main"
+local git = "https://github.com/Hexaven/Hextech-Mining-Drones"
 
---https://pastebin.com/pU2HBysT
--- https://pastebin.com/raw/NaFu674J for simpler turtle download
+
 
 local files, folders
 
@@ -12,19 +11,20 @@ local allFolders = {
 	["general"] = { 
 		name = "general",
 		files = {
-			"classLogger.lua",
+            "bluenet.lua",
+            "classBluenetNode.lua",
+            "classList.lua",
+            "utils.lua",
 			"classPathFinder.lua",
-			"classQueue.lua",
-			"classSimpleVector.lua",
-			"config.lua",
-			"killRednet.lua",
-			"utilsSerialize.lua",
-			"blockTranslation.lua",
-			"bluenet.lua",
-			"classBluenetNode.lua",
-			"classChunkyMap.lua",
 			"classHeap.lua",
-			"classList.lua",
+			"classLogger.lua",
+			"classChunkyMap.lua",
+			"blockTranslation.lua",
+			"blockColor.lua",
+			"utilsSerialize.lua",
+			"classBreadthFirstSearch.lua",
+			"classQueue.lua",
+			"classStateMap.lua"
 		}
 	},
 	["gui"] = { 
@@ -72,16 +72,21 @@ local allFolders = {
 	["turtle"] = { 
 		name = "turtle",
 		files = {
-			"update.lua",
-			"classCheckPointer.lua",
-			"classMiner.lua",
-			"global.lua",
-			"initialize.lua",
-			"main.lua",
-			"receive.lua",
-			"send.lua",
-			"startup.lua",
-
+            "classCheckPointer.lua",
+            "classMiner.lua",
+            "classMinerTaskAssignment.lua",
+            "classTaskQueue.lua",
+            "classTurtleStorage.lua",
+            "extTreeMining.lua",
+            "extTurtleStorage.lua",
+            "global.lua",
+            "initialize.lua",
+            "main.lua",
+            "receive.lua",
+            "send.lua",
+            "testMine.lua",
+            "testPerformance.lua",
+            "update.lua"
 		}
 	},
 }
@@ -95,17 +100,41 @@ if turtle then
 		["turtle"] = {
 		name = "turtle",
 		files = {
-			"startup.lua",
-			"update.lua",
+            "classCheckPointer.lua",
+            "classMiner.lua",
+            "classMinerTaskAssignment.lua",
+            "classTaskQueue.lua",
+            "classTurtleStorage.lua",
+            "extTreeMining.lua",
+            "extTurtleStorage.lua",
+            "global.lua",
+            "initialize.lua",
+            "main.lua",
+            "receive.lua",
+            "send.lua",
+            "testMine.lua",
+            "testPerformance.lua",
+            "update.lua"
 			}
 		}
 		,
 		["general"] = {
 		name = "general",
 		files = {
-			"bluenet.lua",
-			"classBluenetNode.lua",
-			"classList.lua",
+            "bluenet.lua",
+            "classBluenetNode.lua",
+            "classList.lua",
+            "utils.lua",
+			"classPathFinder.lua",
+			"classHeap.lua",
+			"classLogger.lua",
+			"classChunkyMap.lua",
+			"blockTranslation.lua",
+			"blockColor.lua",
+			"utilsSerialize.lua",
+			"classBreadthFirstSearch.lua",
+			"classQueue.lua",
+			"classStateMap.lua"
 			}
 		}
 	}

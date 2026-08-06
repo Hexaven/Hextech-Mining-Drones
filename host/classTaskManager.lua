@@ -258,7 +258,8 @@ end
 
 -- direct funcitons
 function TaskManager:callTurtleHome(turtleId)
-    -- find task for turtle and set it to return home
+    -- cancel current task so returnHome runs immediately
+    self:cancelCurrentTurtleTask(turtleId)
     return self:addTaskToTurtle(turtleId, "returnHome", {})
 end
 function TaskManager:cancelTask(task)
