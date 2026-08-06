@@ -1,7 +1,7 @@
 
--- installation using github for the host computer
+-- installation using github for host computers and turtles
 
-local git = "https://github.com/Hexaven/Hextech-Mining-Drones"
+local git = "https://raw.githubusercontent.com/Hexaven/Hextech-Mining-Drones/main"
 
 
 
@@ -92,9 +92,9 @@ local allFolders = {
 }
 
 if turtle then
-	-- download turtle files, will be updated by host anyways
+	-- fresh turtle install: root startup plus turtle/general runtime files
 	files = {
-		-- "turtle/startup.lua",
+		"turtle/startup.lua",
 	}
 	folders = {
 		["turtle"] = {
@@ -162,28 +162,39 @@ local function downloadFile(filePath)
 	print("downloading", filePath)
 
 	local file = http.get(url)
+	if not file then
+		print("WARNING: unable to download", filePath)
+		return nil
+	end
 	local fileData = file.readAll()
+	file.close()
 	return fileData
+end
+
+if turtle and not fs.exists("runtime") then
+	fs.makeDir("runtime")
 end
 
 -- download folders
 for _,folder in pairs(folders) do
 	print("downloading folder", folder.name)
-	if not fs.exists(folder.name) then
+	if not turtle and not fs.exists(folder.name) then
 		fs.makeDir(folder.name)
 	end
 	
 	for _,fileName in pairs(folder.files) do
 		local filePath = folder.name.."/"..fileName
 		local data = downloadFile(filePath)
-		if turtle then
-			if fileName == "startup.lua" then
-				saveFile(fileName, data) -- save to root folder
+		if data then
+			if turtle then
+				if fileName == "startup.lua" then
+					saveFile(fileName, data)
+				else
+					saveFile("runtime/"..fileName, data)
+				end
 			else
-				saveFile("runtime/"..fileName, data)
+				saveFile(filePath, data)
 			end
-		else
-			saveFile(filePath, data)
 		end
 	end
 end
@@ -191,7 +202,13 @@ end
 -- download single files
 for _,fileName in pairs(files) do
 	local data = downloadFile(fileName)
-	saveFile(fileName, data)
+	if data then
+		if turtle and fileName == "turtle/startup.lua" then
+			saveFile("startup.lua", data)
+		else
+			saveFile(fileName, data)
+		end
+	end
 end
 
 
