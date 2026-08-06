@@ -80,6 +80,13 @@ local allFolders = {
 			"shellDisplay.lua",
 		}
 	},
+    ["storage"] = {
+        name = "storage",
+        files = {
+            "classItemStorage.lua",
+            "classRemoteStorage.lua"
+        }
+    },
 	["turtle"] = { 
 		name = "turtle",
 		files = {
