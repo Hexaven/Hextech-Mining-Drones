@@ -45,12 +45,15 @@ parallel.waitForAll(initNode,initStream, initRefuel, initStorage)
 if not global.node.host then
 	error(global.node.host, 0)
 else
-	local status,err = pcall(function() 
+	local status, err = pcall(function() 
 		global.miner = Miner:new()
 		global.map = global.miner.map
-		
 	end )
-	global.handleError(err,status)
-	
-	global.turtleStorage = TurtleStorage:new(global.miner, global.nodeStorage)
+	global.handleError(err, status)
+
+	if status and global.miner then
+		global.turtleStorage = TurtleStorage:new(global.miner, global.nodeStorage)
+	else
+		global.turtleStorage = nil
+	end
 end
