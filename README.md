@@ -1,12 +1,6 @@
-# Actually Useful Turtles
+# HexTech-Mining-Drones
 
-Remotely controlled mining turtles for the CC:Tweaked mod in Minecraft. This project started as a funny idea while playing with friends to compete with those ridiculously op mining mods. At first i wrote some simple code but after 15k lines of code i cant stop. 
-
-While turtles are quite cool, they are more of a novelty than being actually useful for a normal playthrough or at least require a high level of maintainence. To compete with other quarry mods you would also need a LOT of turtles, controlling them individually is a nightmare even with prewritten scripts.
-
-With this I aim to centralize the management via a single host. Just give them fuel and select a task. Tested with up to 250 Turtles.
-
-
+Remotely controlled mining turtles for the CC:Tweaked mod in Minecraft. 
 
 ### Features:
 
