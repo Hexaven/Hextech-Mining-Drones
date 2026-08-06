@@ -11,6 +11,7 @@ local allFolders = {
 	["general"] = { 
 		name = "general",
 		files = {
+			"blockColor.lua",
             "bluenet.lua",
             "classBluenetNode.lua",
             "classList.lua",
@@ -20,11 +21,14 @@ local allFolders = {
 			"classLogger.lua",
 			"classChunkyMap.lua",
 			"blockTranslation.lua",
-			"blockColor.lua",
+			"config.lua",
+			"killRednet.lua",
 			"utilsSerialize.lua",
 			"classBreadthFirstSearch.lua",
 			"classQueue.lua",
-			"classStateMap.lua"
+			"classStateMap.lua",
+			"classNetworkNode.lua",
+			"classSimpleVector.lua"
 		}
 	},
 	["gui"] = { 
@@ -134,11 +138,18 @@ if turtle then
             "testPerformance.lua",
             "update.lua"
 			}
-		}
-		,
+		},
+		["storage"] = {
+			name = "storage",
+			files = {
+				"classItemStorage.lua",
+				"classRemoteStorage.lua"
+			}
+		},
 		["general"] = {
 		name = "general",
 		files = {
+			"blockColor.lua",
             "bluenet.lua",
             "classBluenetNode.lua",
             "classList.lua",
@@ -148,11 +159,14 @@ if turtle then
 			"classLogger.lua",
 			"classChunkyMap.lua",
 			"blockTranslation.lua",
-			"blockColor.lua",
+			"config.lua",
+			"killRednet.lua",
 			"utilsSerialize.lua",
 			"classBreadthFirstSearch.lua",
 			"classQueue.lua",
-			"classStateMap.lua"
+			"classStateMap.lua",
+			"classNetworkNode.lua",
+			"classSimpleVector.lua"
 			}
 		}
 	}
