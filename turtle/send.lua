@@ -127,6 +127,7 @@ nodeStream.onRequestStreamData = function(previous)
 		state.loadedChunks = map:getLoadedChunks()
 
 		state.mapLog = mapLog
+		state.queueCount = miner.queue and #miner.queue.tasks or 0
 		
 		local taskList = miner.taskList
 		if taskList.first then
@@ -152,6 +153,7 @@ nodeStream.onRequestStreamData = function(previous)
 		end
 		state.mapLog = {}
 		state.unloadedLog = {}
+		state.queueCount = 0
 	end	
 	local err = global.err
 	if err then

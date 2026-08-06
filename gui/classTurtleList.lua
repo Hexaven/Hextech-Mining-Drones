@@ -144,7 +144,11 @@ function TurtleList:filterTurtles()
     for _, turt in pairs(self.turtles) do
         if filter then
             local state = turt.state
-            local active = (state.task ~= nil)
+            local queueActive = (state.queueCount or 0) > 0
+            if queueActive and self.taskManager and self.taskManager.hasActiveTaskForTurtle then
+                queueActive = self.taskManager:hasActiveTaskForTurtle(state.id)
+            end
+            local active = (state.task ~= nil) or queueActive
             local online, stuck = state.online, state.stuck
 
             if filter.all or ( ( online and filter.online or not online and filter.offline )

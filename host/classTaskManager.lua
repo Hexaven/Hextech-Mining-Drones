@@ -93,10 +93,17 @@ function TaskManager:addTask(task)
     -- add to group
     if task.groupId then 
         local group = self.groups[task.groupId]
+        if not group then
+            group = self:createDummyGroup(task.groupId)
+            if group then
+                group:setStatus("unknown")
+                print("created dummy group", group.shortId, "for task", task.shortId)
+            else
+                print("task has unknown group id", task.groupId)
+            end
+        end
         if group then
             group:addTask(task)
-        else
-            print("task has unknown group id", task.groupId)
         end
     end
 
@@ -229,11 +236,26 @@ function TaskManager:getCurrentTurtleTask(turtleId)
     return current
 end
 
+function TaskManager:hasActiveTaskForTurtle(turtleId)
+    local turtleTasks = self.turtleTasks[turtleId]
+    if turtleTasks then
+        for _, task in pairs(turtleTasks) do
+            local status = task:getStatus()
+            if status == "queued" or status == "running" or status == "no_answer" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function TaskManager:getAvailableTurtles()
     local result = {}
 	local count = 0
 	for id,turtle in pairs(self.turtles) do
-		if turtle.state.online and turtle.state.task == nil then
+		local hasHostTask = self:hasActiveTaskForTurtle(id)
+		local hasQueued = (turtle.state.queueCount or 0) > 0
+		if turtle.state.online and turtle.state.task == nil and (not hasQueued or not hasHostTask) then
 			count = count + 1
 			table.insert(result, turtle)
 		end

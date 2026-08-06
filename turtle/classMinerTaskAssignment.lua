@@ -8,6 +8,33 @@ local default = {
 
 local osEpoch = os.epoch
 
+local function toVectorIfXYZ(value)
+	if type(value) == "table" and type(value.x) == "number" and type(value.y) == "number" and type(value.z) == "number" then
+		return vector.new(value.x, value.y, value.z)
+	end
+	return value
+end
+
+local function normalizeTaskData(task)
+	if not task then return end
+	local vars = task.vars
+	if type(vars) == "table" then
+		if type(vars.pos) == "table" then
+			vars.pos = toVectorIfXYZ(vars.pos)
+		end
+		if type(vars.area) == "table" then
+			vars.area.start = toVectorIfXYZ(vars.area.start)
+			vars.area.finish = toVectorIfXYZ(vars.area.finish)
+		end
+	end
+
+	local args = task.args
+	if type(args) == "table" and (task.funcName == "mineArea" or task.funcName == "excavateArea") then
+		args[1] = toVectorIfXYZ(args[1])
+		args[2] = toVectorIfXYZ(args[2])
+	end
+end
+
 local MinerTaskAssignment = {}
 MinerTaskAssignment.__index = MinerTaskAssignment
 
@@ -28,6 +55,7 @@ function MinerTaskAssignment:fromData(data)
 	-- keep track of how often task was attempted
 	if not o.attempts then o.attempts = 0 end
     if not o.turtleId then o.turtleId = os.getComputerID() end
+	normalizeTaskData(o)
 
 	return o
 end
@@ -293,6 +321,12 @@ function MinerTaskAssignment:execute()
             self.returnVals = table.pack(utils.callObjectFunction(miner, self.funcName, self.args))
         end)
     end
+
+	if not ok then
+		local errText = type(err) == "table" and (err.text or textutils.serialize(err, {compact=true, allow_repetitions=true})) or tostring(err)
+		print("TASK EXEC ERROR", self.id, self.funcName, errText)
+		print("TASK EXEC ARGS", textutils.serialize(self.args, {compact=true, allow_repetitions=true}))
+	end
 
     -- err = { fake, text, func, checkpoint }
 	self:handleError(ok, err, self.funcName)

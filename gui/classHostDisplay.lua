@@ -247,6 +247,7 @@ function HostDisplay:initialize()
 	--self.winMap:setInnerWindow(self.mapDisplay)
 	self.winMap = self.mapDisplay
 	self.winTurtles = TurtleList:new(1,1,self:getWidth(),self:getHeight(), self.turtles)
+	self.winTurtles:setTaskManager(self.taskManager)
 	self.winGroups = Window:new()
 	
 	-- add map window data

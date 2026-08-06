@@ -1,0 +1,102 @@
+local git = "https://raw.githubusercontent.com/helpmyRF24isntworking/computercraft/main"
+
+local folders = {
+    ["turtle"] = {
+        name = "turtle",
+        files = {
+            "classCheckPointer.lua",
+            "classMiner.lua",
+            "classMinerTaskAssignment.lua",
+            "classTaskQueue.lua",
+            "classTurtleStorage.lua",
+            "extTreeMining.lua",
+            "extTurtleStorage.lua",
+            "global.lua",
+            "initialize.lua",
+            "main.lua",
+            "receive.lua",
+            "send.lua",
+            "testMine.lua",
+            "testPerformance.lua",
+            "update.lua"
+        }
+    },
+    ["storage"] = {
+        name = "storage",
+        files = {
+            "classItemStorage.lua",
+            "classRemoteStorage.lua"
+        }
+    },
+    ["general"] = {
+        name = "general",
+        files = {
+            "bluenet.lua",
+            "classBluenetNode.lua",
+            "classList.lua",
+            "utils.lua",
+			"classPathFinder.lua",
+			"classHeap.lua",
+			"classLogger.lua",
+			"classChunkyMap.lua",
+			"blockTranslation.lua",
+			"blockColor.lua",
+			"utilsSerialize.lua",
+			"classBreadthFirstSearch.lua",
+			"classQueue.lua",
+			"classStateMap.lua"
+        }
+    }
+}
+
+local function saveFile(filePath, fileData)
+    if fs.exists(filePath) then
+        fs.delete(filePath)
+    end
+
+    local f = fs.open(filePath, "w")
+    f.write(fileData)
+    f.close()
+end
+
+local function downloadFile(filePath)
+    local url = git.."/"..filePath
+    print("downloading " .. filePath)
+
+    local file = http.get(url)
+    
+    -- The Safety Net
+    if not file then
+        print("WARNING: Skipped missing file -> " .. filePath)
+        return nil
+    end
+    
+    local fileData = file.readAll()
+    file.close()
+    return fileData
+end
+
+if not fs.exists("runtime") then
+    fs.makeDir("runtime")
+end
+
+-- Download and route folders
+for _,folder in pairs(folders) do
+    print("--- downloading folder: " .. folder.name .. " ---")
+    
+    for _,fileName in pairs(folder.files) do
+        local fetchPath = folder.name.."/"..fileName
+        local data = downloadFile(fetchPath)
+        
+        if data then
+            -- Unified routing directly to runtime/
+            if fileName == "startup.lua" then
+                saveFile(fileName, data) 
+            else
+                saveFile("runtime/"..fileName, data) 
+            end
+        end
+    end
+end
+
+os.reboot()

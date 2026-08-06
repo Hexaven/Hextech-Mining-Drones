@@ -12,11 +12,24 @@ local defaultBoderWidth = 2
 local Monitor = {}
 
 local function findMonitor()
-    local monitors = {peripheral.find("monitor")}
-    if monitors[1] == nil then
-        error("no monitor found",0)
-    end
-    return monitors[1]
+	local monitors = {peripheral.find("monitor")}
+	if monitors[1] == nil then
+		error("no monitor found",0)
+	end
+
+	local bestMonitor = monitors[1]
+	local bestArea = 0
+	for i = 1, #monitors do
+		local monitor = monitors[i]
+		local width, height = monitor.getSize()
+		local area = width * height
+		if area > bestArea then
+			bestArea = area
+			bestMonitor = monitor
+		end
+	end
+
+	return bestMonitor
 end
 
 local min = math.min

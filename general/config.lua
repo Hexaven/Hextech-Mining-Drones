@@ -1,589 +1,121 @@
 stations = {
   refuelQueue = {
-    maxDistance = 8,
+    maxDistance = 9,
     origin = {
-      y = 72,
-      x = 2221,
-      z = -2653,
+      y = 88,
+      x = 96,
+      z = 27,
     },
   },
   refuel = {
     {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2223,
-        z = -2653,
-      },
-    },
-    [ 6 ] = {
-      orientation = 2,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2221,
-        z = -2651,
-      },
-    },
-    [ 7 ] = {
       orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2221,
-        z = -2655,
+        y = 88,
+        x = 96,
+        z = 26,
       },
     },
-    [ 5 ] = {
+    {
+      orientation = 2,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 96,
+        z = 28,
+      },
+    },
+    {
+      orientation = 1,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 97,
+        z = 27,
+      },
+    },
+    {
       orientation = 3,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2219,
-        z = -2653,
+        y = 88,
+        x = 95,
+        z = 27,
       },
     },
   },
   turtles = {
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2234,
-        z = -2666,
+        y = 88,
+        x = 86,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2234,
-        z = -2665,
+        y = 88,
+        x = 87,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2234,
-        z = -2664,
+        y = 88,
+        x = 88,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2234,
-        z = -2663,
+        y = 88,
+        x = 89,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 68,
-        x = 2234,
-        z = -2662,
+        y = 88,
+        x = 90,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 69,
-        x = 2234,
-        z = -2666,
+        y = 88,
+        x = 91,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 69,
-        x = 2234,
-        z = -2665,
+        y = 88,
+        x = 92,
+        z = 26,
       },
     },
     {
-      orientation = 1,
+      orientation = 0,
       occupied = false,
       pos = {
-        y = 69,
-        x = 2234,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2234,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2234,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2234,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2234,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2234,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2234,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2234,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2234,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2234,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2234,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2234,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2234,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2234,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2234,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2234,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2234,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2234,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2234,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2234,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2234,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2234,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 1,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2234,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 68,
-        x = 2236,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 69,
-        x = 2236,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 71,
-        x = 2236,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 72,
-        x = 2236,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 74,
-        x = 2236,
-        z = -2662,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2236,
-        z = -2666,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2236,
-        z = -2665,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2236,
-        z = -2664,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2236,
-        z = -2663,
-      },
-    },
-    {
-      orientation = 3,
-      occupied = false,
-      pos = {
-        y = 75,
-        x = 2236,
-        z = -2662,
+        y = 88,
+        x = 93,
+        z = 26,
       },
     },
   },

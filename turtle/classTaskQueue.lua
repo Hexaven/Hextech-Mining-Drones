@@ -13,6 +13,7 @@ local function openTab(fileName, args)
 		shell.openTab("runtime/"..fileName, table.unpack(args))
 	end
 end
+
 local function shellRun(fileName, args)
 	--TODO: error handling has to be done by the file itself
 	if not args then
@@ -20,6 +21,13 @@ local function shellRun(fileName, args)
 	else
 		shell.run("runtime/"..fileName, table.unpack(args))
 	end
+end
+
+local function queueLog(...)
+	if type(log) == "function" then
+		return log(...)
+	end
+	return print(...)
 end
 
 
@@ -56,6 +64,7 @@ function TaskQueue:new(miner)
 	o.tasks = {}
 	o.conditional = {}
 	o.path = "/runtime/tasks/queue.txt"
+	o.lastLoad = nil
 	return o
 end
 
@@ -67,6 +76,27 @@ function TaskQueue:addArbitraryTask(func, pos)
     -- arbitrarily defined function
     -- return self:addTask({type = "arbitrary", func = func}, pos)
     print("arbitrary not supported yet")
+end
+
+function TaskQueue:prioritizeTasks()
+	local tasks = self.tasks
+	local normalTasks = {}
+	local recoveryTasks = {}
+	for i = 1, #tasks do
+		local task = tasks[i]
+		if task.funcName == "recoverTurtle" then
+			recoveryTasks[#recoveryTasks+1] = task
+		else
+			normalTasks[#normalTasks+1] = task
+		end
+	end
+	if #recoveryTasks > 0 then
+		self.tasks = normalTasks
+		for i = 1, #recoveryTasks do
+			normalTasks[#normalTasks+1] = recoveryTasks[i]
+		end
+		self.tasks = normalTasks
+	end
 end
 
 function TaskQueue:findTask(taskId)
@@ -125,16 +155,26 @@ function TaskQueue:executeDirectTask(task)
 end
 
 function TaskQueue:executeNext()
+	self:prioritizeTasks()
 	local tasks = self.tasks
+	local fileInfo = fs.exists(self.path) and fs.attributes(self.path) or nil
+	local fileChanged = fileInfo and (not self.lastLoad or fileInfo.modified > self.lastLoad)
+	if fileChanged then
+		self:load(true)
+	elseif #tasks == 0 then
+		-- Receive runs in a different tab, so refresh from disk when idle.
+		self:load(true)
+	end
+	tasks = self.tasks
 	if #tasks == 0 then return end
 	global.err = nil
 	local task = table.remove(tasks, 1)
 	self:save()
 	if task.type and task.type == "direct" then 
-		log("TASK: " .. (task.funcName or task.command or "?"))
+		queueLog("TASK: " .. (task.funcName or task.command or "?"))
 		self:executeDirectTask(task)
 	else
-		log("TASK: " .. (task.funcName or task.taskName or "?") .. " id=" .. tostring(task.id))
+		queueLog("TASK: " .. (task.funcName or task.taskName or "?") .. " id=" .. tostring(task.id))
 		task:execute()
 	end
 
@@ -168,28 +208,48 @@ function TaskQueue:save()
 	return true
 end
 
-function TaskQueue:load()
+function TaskQueue:load(prepend)
     self.loading = true
 	local f = fs.open(self.path, "r")
 	if f then
 		local data = textutils.unserialize(f.readAll())
 		f.close()
+		local loadedTasks = {}
+		local loadedConditionals = {}
+		local directTasks = {}
+		for i = 1, #self.tasks do
+			local task = self.tasks[i]
+			if task.type == "direct" then
+				directTasks[#directTasks+1] = task
+			end
+		end
 		if data then
 			for i = 1, #data do 
 				local taskData = data[i]
                 local type = taskData.type
 				if type == "direct" then
-					table.insert(self.tasks, taskData)
+					table.insert(loadedTasks, taskData)
                 elseif type == "conditional" then
                     local conditionFunc = createConditionFunc(taskData.conditionKey, taskData.params)
                     local task = MinerTaskAssignment:fromData(taskData.task)
-                    table.insert(self.conditional, {task = task, condition = conditionFunc, conditionKey = taskData.conditionKey, params = taskData.params})
+					table.insert(loadedConditionals, {task = task, condition = conditionFunc, conditionKey = taskData.conditionKey, params = taskData.params})
 				else
 					local task = MinerTaskAssignment:fromData(taskData)
-					self:addTask(task)
+					if task then
+						task:setGlobals(self.miner, self.miner.node)
+						table.insert(loadedTasks, task)
+					end
 				end
 			end
 		end
+		-- Sync to disk state and keep unsaved direct tasks.
+		self.tasks = directTasks
+		for i = 1, #loadedTasks do
+			table.insert(self.tasks, loadedTasks[i])
+		end
+		self.conditional = loadedConditionals
+		local attr = fs.attributes(self.path)
+		self.lastLoad = attr and attr.modified or osEpoch()
 	end
     self.loading = false
 end

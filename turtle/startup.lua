@@ -20,4 +20,3 @@ tabSend = shell.openTab("/runtime/send.lua")
 multishell.setTitle(tabMain, "main")
 multishell.setTitle(tabReceive, "receive")
 multishell.setTitle(tabSend, "send")
-

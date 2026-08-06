@@ -217,8 +217,16 @@ function TaskControl:initialize()
     local x, y = 47, 3
     self.btnDetails = Button:new("print",x,y,6,1)
     self.btnDetails.click = function()
-        if self.task then 
-            self.task:printDetails()
+		if self.task then
+			if type(self.task.printDetails) == "function" then
+				self.task:printDetails()
+			else
+				local data = self.task
+				if type(self.task.toSerializableData) == "function" then
+					data = self.task:toSerializableData()
+				end
+				print("task details", textutils.serialize(data, { compact = true, allow_repetitions = true }))
+			end
         end
     end
 

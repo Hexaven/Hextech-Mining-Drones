@@ -61,6 +61,10 @@ function TaskGroupSelector:initialize()
 	self.btnDecreaseSize = Button:new("-",sx+2,sy+2,1,1)
 	self.lblGroupSize = Label:new(self.taskGroup.groupSize,sx+4,sy+2)
 	self.btnIncreaseSize = Button:new("+",sx+7,sy+2,1,1)
+	self.lblAvailableTxt = Label:new("available", sx, sy+4)
+	self.lblAvailable = Label:new("0", sx+10, sy+4)
+	self.lblQueuedTxt = Label:new("queued", sx, sy+5)
+	self.lblQueued = Label:new("0", sx+10, sy+5)
 	
 	self.btnIncreaseSize.click = function() self:changeGroupSize(1) end
 	self.btnDecreaseSize.click = function() self:changeGroupSize(-1) end
@@ -113,6 +117,10 @@ function TaskGroupSelector:initialize()
 	
 	self:addObject(self.lblGroupSizeTxt)
 	self:addObject(self.lblGroupSize)
+	self:addObject(self.lblAvailableTxt)
+	self:addObject(self.lblAvailable)
+	self:addObject(self.lblQueuedTxt)
+	self:addObject(self.lblQueued)
 	--self:addObject(self.lblAreaStart)
 	--self:addObject(self.lblAreaEnd)
 
@@ -133,8 +141,7 @@ function TaskGroupSelector:getTaskGroup()
 end
 
 function TaskGroupSelector:changeGroupSize(increment)
-	self.taskGroup:setGroupSize(self.taskGroup.groupSize+increment)
-	--self.taskGroup:forceGroupSize(self.taskGroup.groupSize+increment)
+	self.taskGroup:forceGroupSize((self.taskGroup.groupSize or 0) + increment)
 	self:refresh()
 	self.lblGroupSize:redraw()
 end
@@ -155,6 +162,18 @@ function TaskGroupSelector:refreshPos()
 end
 function TaskGroupSelector:refresh()
 	self.lblGroupSize:setText(self.taskGroup.groupSize)
+	self.lblAvailable:setText(self.taskGroup:countAvailableTurtles())
+	local queued = 0
+	if self.taskManager and self.taskManager.turtles then
+		for turtleId, turtle in pairs(self.taskManager.turtles) do
+			local state = turtle.state or {}
+			local hasHostTask = self.taskManager:hasActiveTaskForTurtle(turtleId)
+			if state.online and state.task == nil and (state.queueCount or 0) > 0 and hasHostTask then
+				queued = queued + 1
+			end
+		end
+	end
+	self.lblQueued:setText(queued)
 	self:refreshPos()
 	if self.positions and #self.positions == 2 and self.taskName then
 		self.btnStartTasks:setEnabled(true)

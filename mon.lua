@@ -1,21 +1,5 @@
-local function hasTable(t)
-	return type(t) == "table"
-end
-
-if not hasTable(global)
-	or not hasTable(global.map)
-	or not hasTable(global.turtles)
-	or not hasTable(global.node)
-	or not hasTable(global.nodeStream)
-	or not hasTable(global.nodeUpdate)
-	or not hasTable(global.monitor) then
-	print("mon.lua is a host debug script.")
-	print("Run it on the host after startup is fully initialized.")
-	return
-end
-
 function printGlobals()
-	local count = 0
+	count = 0
 	for _,entry in pairs(global.map.chunks) do
 		count = count + 1
 	end
@@ -109,88 +93,9 @@ function testTableInsert()
 end
 
 
-local function render()
-	term.setCursorPos(1, 1)
-	term.clear()
-	printTurtles()
-	printGlobals()
-	printEvents()
-end
 
-local function getMainMonitorName()
-	if not hasTable(global.monitor) or not global.monitor.term then
-		return nil
-	end
-	local ok, name = pcall(peripheral.getName, global.monitor.term)
-	if ok then return name end
-	return nil
-end
+printTurtles()
+printGlobals()
+printEvents()
 
-local function getMonitorNames()
-	local result = {}
-	for _, name in ipairs(peripheral.getNames()) do
-		if peripheral.getType(name) == "monitor" then
-			table.insert(result, name)
-		end
-	end
-	return result
-end
-
-local function resolveMonitor(sideArg)
-	if sideArg then
-		local mon = peripheral.wrap(sideArg)
-		if mon and peripheral.getType(sideArg) == "monitor" then
-			return mon, sideArg
-		end
-		return nil, nil
-	end
-
-	local monitorNames = getMonitorNames()
-	if #monitorNames == 0 then
-		return nil, nil
-	end
-
-	local mainName = getMainMonitorName()
-	if mainName then
-		for _, name in ipairs(monitorNames) do
-			if name ~= mainName then
-				return peripheral.wrap(name), name
-			end
-		end
-	end
-
-	return peripheral.wrap(monitorNames[1]), monitorNames[1]
-end
-
-local args = { ... }
-local monitorSide = args[1]
-local interval = tonumber(args[2]) or 1
-
-local mon, pickedSide = resolveMonitor(monitorSide)
-
-if monitorSide and not mon then
-	print("Invalid monitor side: " .. tostring(monitorSide))
-	print("Usage: mon <side> [interval]")
-	return
-end
-
-if mon then
-	if not monitorSide then
-		print("mon: using monitor " .. tostring(pickedSide))
-	end
-
-	local previousTerm = term.current()
-	term.redirect(mon)
-	if mon.setBackgroundColor then mon.setBackgroundColor(colors.black) end
-	if mon.setTextColor then mon.setTextColor(colors.white) end
-
-	while true do
-		render()
-		sleep(interval)
-	end
-
-	term.redirect(previousTerm)
-else
-	render()
-end
 --testTableInsert()

@@ -1,39 +1,30 @@
-
--- installation using github for host computers and turtles
-
 local git = "https://raw.githubusercontent.com/Hexaven/Hextech-Mining-Drones/main"
-
-
-
-local files, folders
-
+-- Hexaven Installer : pastebin 3PtZVWHF
 local allFolders = {
-	["general"] = { 
-		name = "general",
-		files = {
-			"blockColor.lua",
+    ["general"] = { 
+        name = "general",
+        files = {
+            "classLogger.lua",
+            "classPathFinder.lua",
+            "classQueue.lua",
+            "classSimpleVector.lua",
+            "config.lua",
+            "classBlockColor.lua",
+            "blockColor.lua",
+            "killRednet.lua",
+            "utilsSerialize.lua",
+            "blockTranslation.lua",
             "bluenet.lua",
             "classBluenetNode.lua",
+            "classChunkyMap.lua",
+            "classHeap.lua",
             "classList.lua",
             "utils.lua",
-			"classPathFinder.lua",
-			"classHeap.lua",
-			"classLogger.lua",
-			"classChunkyMap.lua",
-			"blockTranslation.lua",
-			"config.lua",
-			"killRednet.lua",
-			"utilsSerialize.lua",
-			"classBreadthFirstSearch.lua",
-			"classQueue.lua",
-			"classStateMap.lua",
-			"classNetworkNode.lua",
-			"classSimpleVector.lua"
-		}
-	},
-	["gui"] = { 
-		name = "gui",
-		files = {
+        }
+    },
+    ["gui"] = { 
+        name = "gui",
+        files = {
             "classBasicWindow.lua",
             "classMonitor.lua",
             "classTaskGroupControl.lua",
@@ -62,11 +53,11 @@ local allFolders = {
             "classOptionSelector.lua",
             "classStorageDisplay.lua",
             "classStorageItemControl.lua",
-		}
-	},
-	["host"] = { 
-		name = "host",
-		files = {
+        }
+    },
+    ["host"] = { 
+        name = "host",
+        files = {
             "startup.lua",
             "classTaskGroup.lua",
             "display.lua",
@@ -81,172 +72,89 @@ local allFolders = {
             "classLoadBalancer.lua",
             "classRecurringProject.lua",
             "classComplexTask.lua",
-		}
-	},
-	["pocket"] = { 
-		name = "pocket",
-		files = {
-			"shellDisplay.lua",
-		}
-	},
+        }
+    },
     ["storage"] = {
         name = "storage",
         files = {
             "classItemStorage.lua",
-            "classRemoteStorage.lua"
+            "classRemoteStorage.lua",
+            "test.lua",
         }
     },
-	["turtle"] = { 
-		name = "turtle",
-		files = {
-            "classCheckPointer.lua",
-            "classMiner.lua",
-            "classMinerTaskAssignment.lua",
-            "classTaskQueue.lua",
-            "classTurtleStorage.lua",
-            "extTreeMining.lua",
-            "extTurtleStorage.lua",
-            "global.lua",
-            "initialize.lua",
-            "main.lua",
-            "receive.lua",
-            "send.lua",
-            "testMine.lua",
-            "testPerformance.lua",
-            "update.lua"
-		}
-	},
+    ["pocket"] = { 
+        name = "pocket",
+        files = {
+            "shellDisplay.lua",
+        }
+    }
 }
 
-if turtle then
-	-- fresh turtle install: root startup plus turtle/general runtime files
-	files = {
-		"turtle/startup.lua",
-	}
-	folders = {
-		["turtle"] = {
-		name = "turtle",
-		files = {
-            "classCheckPointer.lua",
-            "classMiner.lua",
-            "classMinerTaskAssignment.lua",
-            "classTaskQueue.lua",
-            "classTurtleStorage.lua",
-            "extTreeMining.lua",
-            "extTurtleStorage.lua",
-            "global.lua",
-            "initialize.lua",
-            "main.lua",
-            "receive.lua",
-            "send.lua",
-            "testMine.lua",
-            "testPerformance.lua",
-            "update.lua"
-			}
-		},
-		["storage"] = {
-			name = "storage",
-			files = {
-				"classItemStorage.lua",
-				"classRemoteStorage.lua"
-			}
-		},
-		["general"] = {
-		name = "general",
-		files = {
-			"blockColor.lua",
-            "bluenet.lua",
-            "classBluenetNode.lua",
-            "classList.lua",
-            "utils.lua",
-			"classPathFinder.lua",
-			"classHeap.lua",
-			"classLogger.lua",
-			"classChunkyMap.lua",
-			"blockTranslation.lua",
-			"config.lua",
-			"killRednet.lua",
-			"utilsSerialize.lua",
-			"classBreadthFirstSearch.lua",
-			"classQueue.lua",
-			"classStateMap.lua",
-			"classNetworkNode.lua",
-			"classSimpleVector.lua"
-			}
-		}
-	}
-else
-	-- host computer
-	files = {
-		"startup.lua"
-	}
-	folders = allFolders
-end
+-- Host computer specific startup
+--local files = {
+--    "startup.lua"
+--}
 
 local function saveFile(filePath, fileData)
-	if fs.exists(filePath) then
-		fs.delete(filePath)
-	end
+    if fs.exists(filePath) then
+        fs.delete(filePath)
+    end
 
-	local f = fs.open(filePath, "w")
-	f.write(fileData)
-	f.close()
+    local f = fs.open(filePath, "w")
+    f.write(fileData)
+    f.close()
 end
-
 
 local function downloadFile(filePath)
-	local url = git.."/"..filePath
-	print("downloading", filePath)
+    local url = git.."/"..filePath
+    print("downloading " .. filePath)
 
-	local file = http.get(url)
-	if not file then
-		print("WARNING: unable to download", filePath)
-		return nil
-	end
-	local fileData = file.readAll()
-	file.close()
-	return fileData
+    local file = http.get(url)
+    
+    -- The Safety Net: Prevent crashes on 404 errors
+    if not file then
+        print("WARNING: Skipped missing file -> " .. filePath)
+        return nil
+    end
+    
+    local fileData = file.readAll()
+    file.close()
+    return fileData
 end
 
-if turtle and not fs.exists("runtime") then
-	fs.makeDir("runtime")
+-- Ensure the unified runtime directory exists
+if not fs.exists("runtime") then
+    fs.makeDir("runtime")
 end
 
--- download folders
-for _,folder in pairs(folders) do
-	print("downloading folder", folder.name)
-	if not turtle and not fs.exists(folder.name) then
-		fs.makeDir(folder.name)
-	end
-	
-	for _,fileName in pairs(folder.files) do
-		local filePath = folder.name.."/"..fileName
-		local data = downloadFile(filePath)
-		if data then
-			if turtle then
-				if fileName == "startup.lua" then
-					saveFile(fileName, data)
-				else
-					saveFile("runtime/"..fileName, data)
-				end
-			else
-				saveFile(filePath, data)
-			end
-		end
-	end
+-- Download and route folders
+for _,folder in pairs(allFolders) do
+    print("--- downloading folder: " .. folder.name .. " ---")
+    
+    for _,fileName in pairs(folder.files) do
+        local fetchPath = folder.name.."/"..fileName
+        local data = downloadFile(fetchPath)
+        
+        if data then
+            -- Unified routing directly to runtime/
+            if fileName == "startup.lua" then
+                saveFile(fileName, data) 
+            else
+                saveFile("runtime/"..fileName, data)
+            end
+        end
+    end
 end
 
--- download single files
-for _,fileName in pairs(files) do
-	local data = downloadFile(fileName)
-	if data then
-		if turtle and fileName == "turtle/startup.lua" then
-			saveFile("startup.lua", data)
-		else
-			saveFile(fileName, data)
-		end
-	end
+-- Download single files
+--for _,fileName in pairs(files) do
+--    local data = downloadFile(fileName)
+--    if data then saveFile(fileName, data) end
+--end
+if files and type(files) == "table" then
+    for _,fileName in pairs(files) do
+        local data = downloadFile(fileName)
+        if data then saveFile(fileName, data) end
+    end
 end
-
-
 os.reboot()

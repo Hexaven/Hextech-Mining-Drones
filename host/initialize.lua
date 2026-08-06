@@ -51,7 +51,7 @@ local function loadGroups(fileName)
 	end
 	if groups then 
 		for _,group in pairs(groups) do
-			local taskGroup = TaskGroup:new(global.turtles,nil,group)
+			local taskGroup = TaskGroup:new(global.turtles,group)
 			global.taskGroups[taskGroup.id] = taskGroup
 		end
 	else

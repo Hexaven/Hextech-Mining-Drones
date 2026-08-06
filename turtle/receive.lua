@@ -130,7 +130,7 @@ node.onRequestAnswer = function(msg)
 		local task = MinerTaskAssignment:fromData(data[2])
 		if task then 
 			if miner then 
-				local ok = miner.queue:addTask(task)
+				local ok = miner.queue:addTask(task, 1)
 				if ok then 
 					task:confirmQueued(msg, node)
 				else

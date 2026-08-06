@@ -191,7 +191,7 @@ local function isInsideHomeArea(pos)
 end
 
 local function isProtectedDigTarget(self, targetPos, blockName)
-	if checkOreBlock(blockName) then
+	if self and self.checkOreBlock and self.checkOreBlock(blockName) then
 		return false
 	end
 
