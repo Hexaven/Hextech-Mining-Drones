@@ -118,6 +118,78 @@ stations = {
         z = 26,
       },
     },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 85,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 84,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 83,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 82,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 81,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 80,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 79,
+        z = 26,
+      },
+    },
+    {
+      orientation = 0,
+      occupied = false,
+      pos = {
+        y = 88,
+        x = 78,
+        z = 26,
+      },
+    },
   },
   queue = {},
 }

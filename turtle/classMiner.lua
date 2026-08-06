@@ -58,7 +58,7 @@ local mineBlocks = {
 ["minecraft:tuff"]=true,
 ["minecraft:deepslate"]=true,
 ["minecraft:cobbled_deepslate"]=true,
-	["minecraft:calcite"]=true,
+["minecraft:calcite"]=true,
 -- own array with fluids / allowedBlocks
 ["minecraft:water"]=true,
 ["minecraft:lava"]=true,
@@ -90,9 +90,9 @@ local inventoryBlocks = {
 ["minecraft:black_shulker_box"]=true,
 ["minecraft:hopper"]=true,
 ["minecraft:barrel"]=true,
-	["sophisticatedstorage:controller"]=true,
-	["sophisticatedstorage:chest"]=true,
-	["sophisticatedstorage:barrel"]=true,
+["sophisticatedstorage:controller"]=true,
+["sophisticatedstorage:chest"]=true,
+["sophisticatedstorage:barrel"]=true,
 }
 --inventoryBlocks = blockTranslation.translateTable(inventoryBlocks)
 
@@ -104,9 +104,9 @@ local disallowedBlocks = {
 ["computercraft:wireless_modem_advanced"] = true,
 ["computercraft:monitor_advanced"] = true,
 ["minecraft:bedrock"]=true,
-	["sophisticatedstorage:controller"]=true,
-	["sophisticatedstorage:chest"]=true,
-	["sophisticatedstorage:barrel"]=true,
+["sophisticatedstorage:controller"]=true,
+["sophisticatedstorage:chest"]=true,
+["sophisticatedstorage:barrel"]=true,
 --["minecraft:glass"]=true,
 ["minecraft:white_wool"]=true,
 }
@@ -162,6 +162,13 @@ local tablepack = table.pack
 local tableunpack = table.unpack
 local osEpoch = os.epoch
 
+local function minerLog(...)
+	if type(log) == "function" then
+		return log(...)
+	end
+	return print(...)
+end
+
 local vectors = {
 	[0] = vector.new(0,0,1),  -- 	+z = 0	south
 	[1] = vector.new(-1,0,0), -- 	-x = 1	west
@@ -171,41 +178,6 @@ local vectors = {
 
 local vectorUp = vector.new(0,1,0)
 local vectorDown = vector.new(0,-1,0)
-
-local function isInsideHomeArea(pos)
-	local area = config and config.homeArea
-	local corners = area and area.corners
-	if not corners or not corners[1] or not corners[2] then
-		return false
-	end
-
-	local c1 = corners[1]
-	local c2 = corners[2]
-	local minX, maxX = math.min(c1.x, c2.x), math.max(c1.x, c2.x)
-	local minY, maxY = math.min(c1.y, c2.y), math.max(c1.y, c2.y)
-	local minZ, maxZ = math.min(c1.z, c2.z), math.max(c1.z, c2.z)
-
-	return pos.x >= minX and pos.x <= maxX
-		and pos.y >= minY and pos.y <= maxY
-		and pos.z >= minZ and pos.z <= maxZ
-end
-
-local function isProtectedDigTarget(self, targetPos, blockName)
-	if self and self.checkOreBlock and self.checkOreBlock(blockName) then
-		return false
-	end
-
-	if targetPos and isInsideHomeArea(targetPos) then
-		return true
-	end
-
-	if self.home and targetPos then
-		local d = math.abs(targetPos.x-self.home.x)+math.abs(targetPos.y-self.home.y)+math.abs(targetPos.z-self.home.z)
-		return d <= default.homeProtectionRadius
-	end
-
-	return false
-end
 
 local Miner = {}
 Miner.__index = Miner
@@ -346,7 +318,7 @@ function Miner:initOrientation()
 		print("breaking blocks")
 		for i=1,4 do
 			local hasBlock, data = turtle.inspect()
-			if not Miner.checkDisallowed(data.name) then -- or checkSafe(data.name)
+			if hasBlock and not Miner.checkDisallowed(data.name) and not inventoryBlocks[data.name] then
 				turtle.dig()
 				sleep(default.waitTimeFallingBlock)
 			end
@@ -472,6 +444,25 @@ function Miner:requestStation()
 	
 	return retval
 end
+
+function Miner:loadStation()
+	if not config or not config.stations or not config.stations.turtles then
+		print("no local stations configured")
+		return false
+	end
+
+	for _, station in pairs(config.stations.turtles) do
+		local pos = station.pos
+		if pos and self.pos and pos.x == self.pos.x and pos.y == self.pos.y and pos.z == self.pos.z then
+			self:setStation(station)
+			return true
+		end
+	end
+
+	print("no local station at", self.pos.x, self.pos.y, self.pos.z)
+	return false
+end
+
 function Miner:setStation(station)
 	if station then
 		self:setHome(station.pos.x,station.pos.y,station.pos.z)
@@ -562,9 +553,9 @@ function Miner:returnHome()
 	self.returningHome = true
 	if self.home then
 		print("RETURNING HOME", self.home.x, self.home.y, self.home.z)
-		log("HOME: returning to", self.home.x, self.home.y, self.home.z)
+		minerLog("HOME: returning to", self.home.x, self.home.y, self.home.z)
 		result = self:navigateToPos(self.home.x, self.home.y, self.home.z)
-		if result then log("HOME: arrived") else log("HOME: FAILED to reach home") end
+		if result then minerLog("HOME: arrived") else minerLog("HOME: FAILED to reach home") end
 		self:turnTo(self.homeOrientation)
 	end
 	self.returningHome = false
@@ -607,6 +598,7 @@ function Miner:cancelTaskAssignment(taskId, msg)
 end
 
 function Miner:error(reason, fake)
+	minerLog("ERROR:", reason, fake and "(fake)" or "")
 	-- TODO: create image of current Miner to load later on
 	-- self:save()
 
@@ -804,9 +796,11 @@ function Miner:transferItems()
 	end
 	if not hasInventory then 
 		print("no inventory found")
+		minerLog("ITEMS: no inventory found at home")
 		--assert(hasInventory, "no inventory found")
 	else
 		local startSlot = turtle.getSelectedSlot()
+		local dropped = 0
 		for i = 0,default.inventorySize-1 do
 			local slot = (i+startSlot-1)%default.inventorySize +1
 			local data = turtle.getItemDetail(slot)
@@ -820,10 +814,13 @@ function Miner:transferItems()
 					if ok ~= true then
 						print(ok,"inventory in front is full")
 						break
+					else
+						dropped = dropped + data.count
 					end
 				end
 			end
 		end
+		minerLog("ITEMS: transferred", dropped, "items")
 	end
 	self:turnTo(startOrientation)
 	self.taskList:remove(currentTask)
@@ -1670,9 +1667,10 @@ function Miner:digMove(safe)
 			local doMine = true
 			if safe then
 				doMine = checkSafe(blockName)
-				if doMine then
-					local targetPos = self.pos + self.vectors[self.orientation]
-					if isProtectedDigTarget(self, targetPos, blockName) then doMine = false end
+				-- no-dig zone: near home only mine ores, never structural blocks
+				if doMine and not checkOreBlock(blockName) and self.home then
+					local d = math.abs(self.pos.x-self.home.x)+math.abs(self.pos.y-self.home.y)+math.abs(self.pos.z-self.home.z)
+					if d <= default.homeProtectionRadius then doMine = false end
 				end
 			else
 				-- -> check if its explictly disallowed
@@ -1731,9 +1729,9 @@ function Miner:digMoveDown(safe)
 			local doMine = true
 			if safe then
 				doMine = checkSafe(blockName)
-				if doMine then
-					local targetPos = self.pos + vectorDown
-					if isProtectedDigTarget(self, targetPos, blockName) then doMine = false end
+				if doMine and not checkOreBlock(blockName) and self.home then
+					local d = math.abs(self.pos.x-self.home.x)+math.abs(self.pos.y-self.home.y)+math.abs(self.pos.z-self.home.z)
+					if d <= default.homeProtectionRadius then doMine = false end
 				end
 			else
 				doMine = not checkDisallowed(blockName)
@@ -1787,9 +1785,9 @@ function Miner:digMoveUp(safe)
 			local doMine = true
 			if safe then
 				doMine = checkSafe(blockName)
-				if doMine then
-					local targetPos = self.pos + vectorUp
-					if isProtectedDigTarget(self, targetPos, blockName) then doMine = false end
+				if doMine and not checkOreBlock(blockName) and self.home then
+					local d = math.abs(self.pos.x-self.home.x)+math.abs(self.pos.y-self.home.y)+math.abs(self.pos.z-self.home.z)
+					if d <= default.homeProtectionRadius then doMine = false end
 				end
 			else
 				doMine = not checkDisallowed(blockName)
@@ -2714,6 +2712,7 @@ function Miner:setNavigateTo(x,y,z)
 end
 
 function Miner:navigateToPos(x,y,z)
+	minerLog("NAV: to", x, y, z)
 	-- default miner navigation with safety override near goal
 	local options = {
 		safe = true,
