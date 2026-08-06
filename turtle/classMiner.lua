@@ -237,8 +237,9 @@ function Miner:initialize()
 	self:initOrientation()
 
 	if not self:requestStation() then
-		self:loadStation() -- TODO
-		self:setHome(self.pos.x, self.pos.y, self.pos.z)
+		if not self:loadStation() then
+			self:setHome(self.pos.x, self.pos.y, self.pos.z)
+		end
 	end
 	self:setStartupPos(self.pos)
 
@@ -481,6 +482,19 @@ function Miner:setStation(station)
 	end
 end
 
+function Miner:isKnownTurtleStation(pos)
+	if not pos or not config or not config.stations or not config.stations.turtles then
+		return false
+	end
+	for _, station in pairs(config.stations.turtles) do
+		local s = station and station.pos
+		if s and s.x == pos.x and s.y == pos.y and s.z == pos.z then
+			return true
+		end
+	end
+	return false
+end
+
 function Miner:sendAlert()
 	-- nofity host to be recovered at pos
 	-- alternatively broadcast distress signal to all turtles and wait for recovery
@@ -551,10 +565,38 @@ function Miner:returnHome()
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	local result = false
 	self.returningHome = true
+	if not self.home or not self:isKnownTurtleStation(self.home) then
+		if not self:requestStation() then
+			self:loadStation()
+		end
+	end
 	if self.home then
 		print("RETURNING HOME", self.home.x, self.home.y, self.home.z)
 		minerLog("HOME: returning to", self.home.x, self.home.y, self.home.z)
 		result = self:navigateToPos(self.home.x, self.home.y, self.home.z)
+		if not result then
+			-- Fallback for near-miss cases (e.g. one block above/away from station).
+			local dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
+			if dist <= 2 then
+				if self.pos.y > self.home.y then
+					self:down()
+				elseif self.pos.y < self.home.y then
+					self:up()
+				end
+
+				dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
+				if dist == 2 then
+					self:navigateInfrontOf(self.home.x, self.home.y, self.home.z, true)
+					dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
+				end
+				if dist == 1 then
+					self:turnToPos(self.home.x, self.home.y, self.home.z)
+					result = self:forward()
+				elseif dist == 0 then
+					result = true
+				end
+			end
+		end
 		if result then minerLog("HOME: arrived") else minerLog("HOME: FAILED to reach home") end
 		self:turnTo(self.homeOrientation)
 	end
