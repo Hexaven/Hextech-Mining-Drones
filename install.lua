@@ -1,5 +1,7 @@
 local git = "https://raw.githubusercontent.com/Hexaven/Hextech-Mining-Drones/main"
 -- Hexaven Installer : pastebin 3PtZVWHF
+local files, folders
+
 local allFolders = {
     ["general"] = { 
         name = "general",
@@ -87,13 +89,56 @@ local allFolders = {
         files = {
             "shellDisplay.lua",
         }
+    },
+    ["turtle"] = {
+        name = "turtle",
+        files = {
+            "update.lua",
+            "classCheckPointer.lua",
+            "classMiner.lua",
+            "global.lua",
+            "initialize.lua",
+            "main.lua",
+            "receive.lua",
+            "send.lua",
+            "startup.lua",
+        }
     }
 }
 
--- Host computer specific startup
---local files = {
---    "startup.lua"
---}
+if turtle then
+    -- Fresh turtles only need their own bootstrap + minimal shared deps.
+    files = {}
+    folders = {
+        ["turtle"] = {
+            name = "turtle",
+            files = {
+                "startup.lua",
+                "update.lua",
+            }
+        },
+        ["general"] = {
+            name = "general",
+            files = {
+                "bluenet.lua",
+                "classBluenetNode.lua",
+                "classList.lua",
+            }
+        }
+    }
+else
+    -- Host computer
+    files = {
+        "startup.lua"
+    }
+    folders = {
+        ["general"] = allFolders.general,
+        ["gui"] = allFolders.gui,
+        ["host"] = allFolders.host,
+        ["storage"] = allFolders.storage,
+        ["pocket"] = allFolders.pocket,
+    }
+end
 
 local function saveFile(filePath, fileData)
     if fs.exists(filePath) then
@@ -128,7 +173,7 @@ if not fs.exists("runtime") then
 end
 
 -- Download and route folders
-for _,folder in pairs(allFolders) do
+for _,folder in pairs(folders) do
     print("--- downloading folder: " .. folder.name .. " ---")
     
     for _,fileName in pairs(folder.files) do
@@ -136,9 +181,9 @@ for _,folder in pairs(allFolders) do
         local data = downloadFile(fetchPath)
         
         if data then
-            -- Unified routing directly to runtime/
+            -- Keep startup in root, runtime files in runtime/
             if fileName == "startup.lua" then
-                saveFile(fileName, data) 
+                saveFile(fileName, data)
             else
                 saveFile("runtime/"..fileName, data)
             end
@@ -147,10 +192,6 @@ for _,folder in pairs(allFolders) do
 end
 
 -- Download single files
---for _,fileName in pairs(files) do
---    local data = downloadFile(fileName)
---    if data then saveFile(fileName, data) end
---end
 if files and type(files) == "table" then
     for _,fileName in pairs(files) do
         local data = downloadFile(fileName)
