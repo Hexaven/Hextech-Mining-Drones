@@ -1,6 +1,7 @@
 local git = "https://raw.githubusercontent.com/Hexaven/Hextech-Mining-Drones/main"
 -- Hexaven Installer : pastebin 3PtZVWHF
 local files, folders
+local isTurtle = type(turtle) == "table"
 
 local allFolders = {
     ["general"] = { 
@@ -106,7 +107,7 @@ local allFolders = {
     }
 }
 
-if turtle then
+if isTurtle then
     -- Fresh turtles only need their own bootstrap + minimal shared deps.
     files = {}
     folders = {
@@ -137,6 +138,7 @@ else
         ["host"] = allFolders.host,
         ["storage"] = allFolders.storage,
         ["pocket"] = allFolders.pocket,
+        ["turtle"] = allFolders.turtle,
     }
 end
 
@@ -181,10 +183,10 @@ for _,folder in pairs(folders) do
         local data = downloadFile(fetchPath)
         
         if data then
-            -- Keep startup in root, runtime files in runtime/
-            if fileName == "startup.lua" then
+            -- Startup is role-specific: turtle/startup for turtles, host/startup for hosts.
+            if fileName == "startup.lua" and ((isTurtle and folder.name == "turtle") or ((not isTurtle) and folder.name == "host")) then
                 saveFile(fileName, data)
-            else
+            elseif fileName ~= "startup.lua" then
                 saveFile("runtime/"..fileName, data)
             end
         end

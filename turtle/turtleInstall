@@ -1,4 +1,4 @@
-local git = "https://raw.githubusercontent.com/helpmyRF24isntworking/computercraft/main"
+local git = "https://raw.githubusercontent.com/Hexaven/Hextech-Mining-Drones/main"
 
 local folders = {
     ["turtle"] = {
@@ -16,6 +16,7 @@ local folders = {
             "main.lua",
             "receive.lua",
             "send.lua",
+            "startup.lua",
             "testMine.lua",
             "testPerformance.lua",
             "update.lua"
