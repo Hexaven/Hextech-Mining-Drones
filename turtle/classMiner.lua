@@ -29,7 +29,9 @@ local default = {
 		maxTries = 15,
 		maxParts = 2,
 		maxDistance = 10,
-	}
+	},
+	homeDockRetries = 16,
+	homeTraceTurtleId = 17,
 }
 
 local fuelItems = {
@@ -169,6 +171,27 @@ local function minerLog(...)
 	return print(...)
 end
 
+local function roundCoord(n)
+	if n >= 0 then
+		return math.floor(n + 0.5)
+	end
+	return math.ceil(n - 0.5)
+end
+
+local function isStorageLikeBlock(id)
+	if not id or id == 0 then return false end
+	if inventoryBlocks[id] or disallowedBlocks[id] then return true end
+	local name = string.lower(tostring(id))
+	return string.find(name, "chest", 1, true)
+		or string.find(name, "barrel", 1, true)
+		or string.find(name, "shulker", 1, true)
+		or string.find(name, "hopper", 1, true)
+		or string.find(name, "drawer", 1, true)
+		or string.find(name, "crate", 1, true)
+		or string.find(name, "storage", 1, true)
+		or string.find(name, "controller", 1, true)
+end
+
 local vectors = {
 	[0] = vector.new(0,0,1),  -- 	+z = 0	south
 	[1] = vector.new(-1,0,0), -- 	-x = 1	west
@@ -284,6 +307,8 @@ function Miner:restoreState()
 				--]]
 			else
 				print("CHECKPOINT RESTORED")
+				self.queue:addDirectTask("DO", "refuel", nil, 1)
+				self.queue:addDirectTask("DO", "returnHome", nil, 2)
 			end
 		end
 	end
@@ -293,7 +318,7 @@ end
 function Miner:initPosition()
 	local x,y,z = gps.locate()
 	if x and y and z then
-		self.pos = vector.new(x,y,z)
+		self.pos = vector.new(roundCoord(x), roundCoord(y), roundCoord(z))
 	else
 		--gps not working
 		self:error("GPS UNAVAILABLE")
@@ -310,7 +335,8 @@ function Miner:initOrientation()
 			self:turnLeft()
 			turns = turns + 1
 		else
-			newPos = vector.new(gps.locate())
+			local x,y,z = gps.locate()
+			newPos = x and vector.new(roundCoord(x), roundCoord(y), roundCoord(z)) or nil
 			break
 		end
 	end
@@ -327,7 +353,8 @@ function Miner:initOrientation()
 				self:turnLeft()
 				turns = turns + 1
 			else
-				newPos = vector.new(gps.locate())
+				local x,y,z = gps.locate()
+				newPos = x and vector.new(roundCoord(x), roundCoord(y), roundCoord(z)) or nil
 				break
 			end
 		end
@@ -495,6 +522,69 @@ function Miner:isKnownTurtleStation(pos)
 	return false
 end
 
+function Miner:tryNearbyTurtleStationsForDock(maxStations)
+	if not config or not config.stations or not config.stations.turtles then
+		return false
+	end
+
+	local oldHome = self.home and vector.new(self.home.x, self.home.y, self.home.z) or nil
+	local oldOrientation = self.homeOrientation
+	local candidates = {}
+
+	for _, station in pairs(config.stations.turtles) do
+		local p = station and station.pos
+		if p then
+			table.insert(candidates, {
+				station = station,
+				distance = self:getDistanceToPos(p.x, p.y, p.z),
+			})
+		end
+	end
+
+	table.sort(candidates, function(a, b)
+		return a.distance < b.distance
+	end)
+
+	local tries = 0
+	for _, candidate in ipairs(candidates) do
+		tries = tries + 1
+		if maxStations and tries > maxStations then
+			break
+		end
+
+		local station = candidate.station
+		local p = station.pos
+		self:setHome(p.x, p.y, p.z)
+		if station.orientation then
+			self.homeOrientation = station.orientation
+		end
+
+		local ok = self:navigateToPos(p.x, p.y, p.z)
+		if not ok and self:getDistanceToPos(p.x, p.y, p.z) <= 4 then
+			ok = self:tryCloseRangeDock(p.x, p.y, p.z, 10)
+		end
+		if ok and not self:isUsableDockPosition(p.x, p.y, p.z) then
+			self:navigateInfrontOf(p.x, p.y, p.z, true)
+			ok = self:isUsableDockPosition(p.x, p.y, p.z)
+		end
+
+		if ok then
+			self:turnTo(self.homeOrientation)
+			minerLog("HOME: docked alternate station", p.x, p.y, p.z)
+			return true
+		end
+	end
+
+	if oldHome then
+		self:setHome(oldHome.x, oldHome.y, oldHome.z)
+	else
+		self.home = nil
+	end
+	self.homeOrientation = oldOrientation
+
+	return false
+end
+
 function Miner:sendAlert()
 	-- nofity host to be recovered at pos
 	-- alternatively broadcast distress signal to all turtles and wait for recovery
@@ -556,15 +646,117 @@ function Miner:getCostHome()
 end
 
 function Miner:getDistanceToPos(x,y,z)
-	local diff = self.pos - vector.new(x,y,z)
+	local diff = vector.new(roundCoord(self.pos.x), roundCoord(self.pos.y), roundCoord(self.pos.z))
+		- vector.new(roundCoord(x), roundCoord(y), roundCoord(z))
 	local result = math.abs(diff.x) + math.abs(diff.y) + math.abs(diff.z)
 	return result
+end
+
+function Miner:snapPos()
+	if not self.pos then return end
+	self.pos = vector.new(roundCoord(self.pos.x), roundCoord(self.pos.y), roundCoord(self.pos.z))
+end
+
+function Miner:isHomeTraceEnabled()
+	local traceId = default.homeTraceTurtleId
+	if config and config.debug and type(config.debug.homeTraceTurtleId) == "number" then
+		traceId = config.debug.homeTraceTurtleId
+	end
+	return os.getComputerID() == traceId
+end
+
+function Miner:homeTrace(...)
+	if not self:isHomeTraceEnabled() then return end
+
+	local args = table.pack(...)
+	for i = 1, args.n do
+		args[i] = tostring(args[i])
+	end
+	local line = "[" .. tostring(osEpoch("utc")) .. "] " .. table.concat(args, " ")
+	minerLog(line)
+
+	local fileName = "runtime/home_path_trace_" .. tostring(os.getComputerID()) .. ".txt"
+	local f = fs.open(fileName, "a")
+	if f then
+		f.writeLine(line)
+		f.close()
+	end
+end
+
+function Miner:isUsableDockPosition(x, y, z)
+	return roundCoord(self.pos.x) == roundCoord(x)
+		and roundCoord(self.pos.y) == roundCoord(y)
+		and roundCoord(self.pos.z) == roundCoord(z)
+end
+
+function Miner:tryCloseRangeDock(x, y, z, maxSteps)
+	-- Deterministic local fallback for crowded home lanes (no pathfinder).
+	maxSteps = maxSteps or 8
+	for _ = 1, maxSteps do
+		local dx = x - self.pos.x
+		local dy = y - self.pos.y
+		local dz = z - self.pos.z
+
+		if self.pos.x == x and self.pos.y == y and self.pos.z == z then
+			return true
+		end
+
+		if dx == 0 and dz == 0 then
+			if math.abs(dy) <= 2 then
+				if dy > 0 then
+					self:up()
+				elseif dy < 0 then
+					self:down()
+				end
+			end
+		end
+
+		local moved = false
+		local dirs = {}
+		if math.abs(dx) >= math.abs(dz) then
+			if dx > 0 then table.insert(dirs, 3) elseif dx < 0 then table.insert(dirs, 1) end
+			if dz > 0 then table.insert(dirs, 0) elseif dz < 0 then table.insert(dirs, 2) end
+		else
+			if dz > 0 then table.insert(dirs, 0) elseif dz < 0 then table.insert(dirs, 2) end
+			if dx > 0 then table.insert(dirs, 3) elseif dx < 0 then table.insert(dirs, 1) end
+		end
+
+		for _, orient in ipairs({0, 1, 2, 3}) do
+			local exists = false
+			for _, d in ipairs(dirs) do
+				if d == orient then exists = true break end
+			end
+			if not exists then table.insert(dirs, orient) end
+		end
+
+		for _, orient in ipairs(dirs) do
+			self:turnTo(orient)
+			if self:forward() then
+				moved = true
+				break
+			end
+		end
+
+		if not moved then
+			if dy > 0 then
+				moved = self:up()
+			elseif dy < 0 then
+				moved = self:down()
+			end
+		end
+
+		if not moved then
+			break
+		end
+	end
+	return self:isUsableDockPosition(x, y, z)
 end
 
 function Miner:returnHome()
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	local result = false
 	self.returningHome = true
+	self:snapPos()
 	if not self.home or not self:isKnownTurtleStation(self.home) then
 		if not self:requestStation() then
 			self:loadStation()
@@ -573,30 +765,78 @@ function Miner:returnHome()
 	if self.home then
 		print("RETURNING HOME", self.home.x, self.home.y, self.home.z)
 		minerLog("HOME: returning to", self.home.x, self.home.y, self.home.z)
+		self:homeTrace("HOME start", "from", self.pos.x, self.pos.y, self.pos.z, "to", self.home.x, self.home.y, self.home.z)
 		result = self:navigateToPos(self.home.x, self.home.y, self.home.z)
+		self:homeTrace("HOME navigateToPos", result, "pos", self.pos.x, self.pos.y, self.pos.z)
 		if not result then
-			-- Fallback for near-miss cases (e.g. one block above/away from station).
 			local dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
-			if dist <= 2 then
-				if self.pos.y > self.home.y then
-					self:down()
-				elseif self.pos.y < self.home.y then
-					self:up()
+			if dist <= 4 then
+				result = self:tryCloseRangeDock(self.home.x, self.home.y, self.home.z, 10)
+				self:homeTrace("HOME tryCloseRangeDock", result, "dist", dist, "pos", self.pos.x, self.pos.y, self.pos.z)
+			end
+		end
+		if not result then
+			-- Exact-home fallback: attempt bounded, deterministic docking and wait on blocked tile.
+			for attempt = 1, default.homeDockRetries do
+				local dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
+				self:homeTrace("HOME dock attempt", attempt, "dist", dist, "pos", self.pos.x, self.pos.y, self.pos.z)
+				if dist == 0 then
+					result = true
+					break
 				end
 
-				dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
-				if dist == 2 then
-					self:navigateInfrontOf(self.home.x, self.home.y, self.home.z, true)
-					dist = self:getDistanceToPos(self.home.x, self.home.y, self.home.z)
+				local moved = false
+				if self.pos.x == self.home.x and self.pos.z == self.home.z then
+					if self.pos.y > self.home.y then
+						moved = self:down()
+						if not moved then
+							local block = self:inspectDown(true)
+							self:homeTrace("HOME down blocked", block or "nil")
+							if block == default.turtleName then sleep(0.4) end
+						end
+					elseif self.pos.y < self.home.y then
+						moved = self:up()
+						if not moved then
+							local block = self:inspectUp(true)
+							self:homeTrace("HOME up blocked", block or "nil")
+							if block == default.turtleName then sleep(0.4) end
+						end
+					end
+				else
+					local inFront = self:navigateInfrontOf(self.home.x, self.home.y, self.home.z, true)
+					self:homeTrace("HOME navigateInfrontOf", inFront, "pos", self.pos.x, self.pos.y, self.pos.z)
+					if inFront then
+						self:turnToPos(self.home.x, self.home.y, self.home.z)
+						moved = self:forward()
+						if not moved then
+							local block = self:inspect(true)
+							self:homeTrace("HOME forward blocked", block or "nil")
+							if block == default.turtleName then sleep(0.4) end
+						end
+					end
 				end
-				if dist == 1 then
-					self:turnToPos(self.home.x, self.home.y, self.home.z)
-					result = self:forward()
-				elseif dist == 0 then
+
+				if self:getDistanceToPos(self.home.x, self.home.y, self.home.z) == 0 then
 					result = true
+					break
+				end
+				if not moved then sleep(0.2) end
+			end
+		end
+		if not result then
+			local inFront = self:navigateInfrontOf(self.home.x, self.home.y, self.home.z, true)
+			if inFront then
+				self:turnToPos(self.home.x, self.home.y, self.home.z)
+				result = self:forward()
+				if not result then
+					result = self:isUsableDockPosition(self.home.x, self.home.y, self.home.z)
 				end
 			end
 		end
+		if result and not self:isUsableDockPosition(self.home.x, self.home.y, self.home.z) then
+			result = false
+		end
+		self:homeTrace("HOME final", result, "pos", self.pos.x, self.pos.y, self.pos.z)
 		if result then minerLog("HOME: arrived") else minerLog("HOME: FAILED to reach home") end
 		self:turnTo(self.homeOrientation)
 	end
@@ -824,17 +1064,43 @@ function Miner:transferItems()
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	local hasFuel = false
 	local hasInventory = false
+	local dropDirection = "front"
 	local startOrientation = self.orientation
-	
-	for k=1,4 do
-	--check for chest
-		self:inspect(true)
-		local block = self:getMapValue(self.lookingAt.x, self.lookingAt.y, self.lookingAt.z)
-		if block and inventoryBlocks[block] then
-			hasInventory = true
-			break
+
+	local function findInventoryAround()
+		self:inspectDown(true)
+		local downBlock = self:getMapValue(self.pos.x, self.pos.y-1, self.pos.z)
+		if downBlock and isStorageLikeBlock(downBlock) then
+			dropDirection = "down"
+			return true
 		end
-		self:turnRight()
+		self:inspectUp(true)
+		local upBlock = self:getMapValue(self.pos.x, self.pos.y+1, self.pos.z)
+		if upBlock and isStorageLikeBlock(upBlock) then
+			dropDirection = "up"
+			return true
+		end
+		for k=1,4 do
+			self:inspect(true)
+			local block = self:getMapValue(self.lookingAt.x, self.lookingAt.y, self.lookingAt.z)
+			if block and isStorageLikeBlock(block) then
+				dropDirection = "front"
+				return true
+			end
+			self:turnRight()
+		end
+		return false
+	end
+	
+	hasInventory = findInventoryAround()
+	if not hasInventory and self.home then
+		minerLog("ITEMS: retry near home")
+		if self.pos.y ~= self.home.y or self:getDistanceToPos(self.home.x, self.home.y, self.home.z) <= 5 then
+			self:tryCloseRangeDock(self.home.x, self.home.y, self.home.z, 10)
+		end
+		self:navigateInfrontOf(self.home.x, self.home.y, self.home.z, true)
+		self:turnTo(self.homeOrientation)
+		hasInventory = findInventoryAround()
 	end
 	if not hasInventory then 
 		print("no inventory found")
@@ -852,7 +1118,14 @@ function Miner:transferItems()
 				else
 					--transfer items
 					self:select(slot)
-					local ok = turtle.drop(data.count)
+					local ok
+					if dropDirection == "down" then
+						ok = turtle.dropDown(data.count)
+					elseif dropDirection == "up" then
+						ok = turtle.dropUp(data.count)
+					else
+						ok = turtle.drop(data.count)
+					end
 					if ok ~= true then
 						print(ok,"inventory in front is full")
 						break
@@ -1563,13 +1836,16 @@ local checkOreBlock = Miner.checkOreBlock
 
 function Miner.checkDisallowed(id)
 	-- blacklist function
-	return disallowedBlocks[id]
+	return disallowedBlocks[id] or isStorageLikeBlock(id)
 end
 local checkDisallowed = Miner.checkDisallowed
 
 function Miner.checkSafe(id)
 	-- whitelist function
 	-- does not take changed blocks into account if id comes from the map value
+	if isStorageLikeBlock(id) then
+		return false
+	end
 	if not id or id == 0 or mineBlocks[id] or checkOreBlock(id) then
 		return true
 	end
@@ -2843,9 +3119,10 @@ function Miner:navigateInfrontOf(x,y,z,sameYLevel)
 		end
 		if not result then
 			print("FAILED TO NAVIGATE IN FRONT OF TARGET ON SAME Y LEVEL")
-		else
-			self:turnToPos(x, y, z)
 		end
+	end
+	if result then
+		self:turnToPos(x, y, z)
 	end
 	return result
 end
