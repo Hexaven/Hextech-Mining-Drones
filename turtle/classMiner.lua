@@ -689,6 +689,18 @@ function Miner:isUsableDockPosition(x, y, z)
 		and roundCoord(self.pos.z) == roundCoord(z)
 end
 
+function Miner:refreshNearbyMap()
+	-- Force live inspection of the 6 adjacent faces so stale map data near stations is overwritten.
+	local currentOrientation = self.orientation
+	self:inspectDown(true)
+	self:inspectUp(true)
+	for i = 0, 3 do
+		self:turnTo((currentOrientation + i) % 4)
+		self:inspect(true)
+	end
+	self:turnTo(currentOrientation)
+end
+
 function Miner:tryCloseRangeDock(x, y, z, maxSteps)
 	-- Deterministic local fallback for crowded home lanes (no pathfinder).
 	maxSteps = maxSteps or 8
@@ -835,6 +847,9 @@ function Miner:returnHome()
 		end
 		if result and not self:isUsableDockPosition(self.home.x, self.home.y, self.home.z) then
 			result = false
+		end
+		if result then
+			self:refreshNearbyMap()
 		end
 		self:homeTrace("HOME final", result, "pos", self.pos.x, self.pos.y, self.pos.z)
 		if result then minerLog("HOME: arrived") else minerLog("HOME: FAILED to reach home") end
@@ -1041,7 +1056,7 @@ function Miner:offloadItemsAtHome()
 	local startOrientation = self.orientation
 
 	if self:returnHome() then
-		self:dumpBadItems(true) -- DELELTE; DROP ALL ITEMS: ONLY FOR TESTING SO I DONT HAVE TO CLEAR THE CHESTS
+		self:dumpBadItems(false) -- DELELTE; DROP ALL ITEMS: ONLY FOR TESTING SO I DONT HAVE TO CLEAR THE CHESTS
 		self:transferItems()
 		if self:getEmptySlots() < 2 then
 			-- catch this in stripmine e.g.
@@ -1068,22 +1083,19 @@ function Miner:transferItems()
 	local startOrientation = self.orientation
 
 	local function findInventoryAround()
-		self:inspectDown(true)
-		local downBlock = self:getMapValue(self.pos.x, self.pos.y-1, self.pos.z)
-		if downBlock and isStorageLikeBlock(downBlock) then
+		local hasBlock, data = turtle.inspectDown()
+		if hasBlock and data and isStorageLikeBlock(data.name) then
 			dropDirection = "down"
 			return true
 		end
-		self:inspectUp(true)
-		local upBlock = self:getMapValue(self.pos.x, self.pos.y+1, self.pos.z)
-		if upBlock and isStorageLikeBlock(upBlock) then
+		hasBlock, data = turtle.inspectUp()
+		if hasBlock and data and isStorageLikeBlock(data.name) then
 			dropDirection = "up"
 			return true
 		end
 		for k=1,4 do
-			self:inspect(true)
-			local block = self:getMapValue(self.lookingAt.x, self.lookingAt.y, self.lookingAt.z)
-			if block and isStorageLikeBlock(block) then
+			hasBlock, data = turtle.inspect()
+			if hasBlock and data and isStorageLikeBlock(data.name) then
 				dropDirection = "front"
 				return true
 			end
@@ -1459,7 +1471,7 @@ function Miner:getFuel()
 					local p = queuePositions[idx]
 					if p then
 						print("moving to queue", p.x .. "," .. p.y .. "," .. p.z)
-						isInQueue = self:navigateToPos(p.x, p.y, p.z)
+						isInQueue = self:navigateToPos(p.x, p.y, p.z, { noDig = true })
 					end
 					if not isInQueue and tries > 3 then
 						print("cant reach refuel queue")
@@ -1479,7 +1491,7 @@ function Miner:getFuel()
 						math.random(origin.z-maxDistance, origin.z+maxDistance)
 					)
 					print("moving to queue", randomPosition)
-					isInQueue = self:navigateToPos(randomPosition.x, randomPosition.y, randomPosition.z)
+						isInQueue = self:navigateToPos(randomPosition.x, randomPosition.y, randomPosition.z, { noDig = true })
 					if not isInQueue and tries > 3 then
 						print("cant reach refuel queue")
 						isInQueue = true -- set to true anyways, should be nearby the queue
@@ -1495,7 +1507,7 @@ function Miner:getFuel()
 		local station = config.stations.refuel[id]
 
 		-- actually refuel
-		if not self:navigateToPos(station.pos.x, station.pos.y, station.pos.z) then
+		if not self:navigateToPos(station.pos.x, station.pos.y, station.pos.z, { noDig = true }) then
 			--print("unable to reach station")
 			return false
 		end
@@ -1503,14 +1515,14 @@ function Miner:getFuel()
 		if station.orientation then 
 			self:turnTo(station.orientation) 
 		end
+		self:refreshNearbyMap()
 		
 		local hasInventory = false
 		
 		for k=1,4 do
 		--check for chest
-			self:inspect(true) -- true for wrong map entries or new stations
-			local block = self:getMapValue(self.lookingAt.x, self.lookingAt.y, self.lookingAt.z)
-			if block and inventoryBlocks[block] then
+			local hasBlock, data = turtle.inspect()
+			if hasBlock and data and isStorageLikeBlock(data.name) then
 				hasInventory = true
 				break
 			end
@@ -1966,7 +1978,7 @@ function Miner:inspectAll()
 	self.taskList:remove(currentTask)
 end
 
-function Miner:digMove(safe)
+function Miner:digMove(safe, noDig)
 	-- tries to dig the block in front and move forwards
 	-- while not mining any turtles
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
@@ -2001,6 +2013,11 @@ function Miner:digMove(safe)
 		blockName, data = self:inspect(true) -- cannot move so there has to be a block
 		--check block
 		if blockName then
+			if noDig then
+				print("NO DIG BLOCKED", blockName)
+				result = false
+				break
+			end
 			--dig if safe
 			local doMine = true
 			if safe then
@@ -2043,7 +2060,7 @@ function Miner:digMove(safe)
 	return ( result and ( blockName or true ) ) or false, data
 end
 
-function Miner:digMoveDown(safe)
+function Miner:digMoveDown(safe, noDig)
 	-- check digMove for documentation
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	local ct = 0
@@ -2064,6 +2081,11 @@ function Miner:digMoveDown(safe)
 	while not self:down() do
 		blockName, data = self:inspectDown(true)
 		if blockName then
+			if noDig then
+				print("NO DIG DOWN BLOCKED", blockName)
+				result = false
+				break
+			end
 			local doMine = true
 			if safe then
 				doMine = checkSafe(blockName)
@@ -2101,7 +2123,7 @@ function Miner:digMoveDown(safe)
 	return ( result and ( blockName or true ) ) or false, data
 end
 
-function Miner:digMoveUp(safe)
+function Miner:digMoveUp(safe, noDig)
 	-- check digMove for documentation
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	local ct = 0
@@ -2120,6 +2142,11 @@ function Miner:digMoveUp(safe)
 	while not self:up() do
 		blockName, data = self:inspectUp(true)
 		if blockName then
+			if noDig then
+				print("NO DIG UP BLOCKED", blockName)
+				result = false
+				break
+			end
 			local doMine = true
 			if safe then
 				doMine = checkSafe(blockName)
@@ -2157,7 +2184,7 @@ function Miner:digMoveUp(safe)
 end
 
 
-function Miner:digToPos(x,y,z,safe)	
+function Miner:digToPos(x,y,z,safe, noDig)	
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 	print("digToPos:", x, y, z, "safe:", safe)
 	-- TODO: if digToPos fails, retry with navigateToPos
@@ -2175,7 +2202,7 @@ function Miner:digToPos(x,y,z,safe)
 		self:inspect()
 	end
 	while self.pos.x ~= x do
-		if not self:digMove(safe) then result = false; break end
+		if not self:digMove(safe, noDig) then result = false; break end
 		self:inspect()
 		self:inspectDown()
 		self:inspectUp()
@@ -2190,7 +2217,7 @@ function Miner:digToPos(x,y,z,safe)
 		end
 		
 		while self.pos.z ~= z do
-			if not self:digMove(safe) then result = false; break end
+			if not self:digMove(safe, noDig) then result = false; break end
 			self:inspect()
 			self:inspectDown()
 			self:inspectUp()
@@ -2199,11 +2226,11 @@ function Miner:digToPos(x,y,z,safe)
 		if result then
 			while self.pos.y ~= y do
 				if self.pos.y < y then
-					if not self:digMoveUp(safe) then result = false; break end
+					if not self:digMoveUp(safe, noDig) then result = false; break end
 					self:inspect()
 					self:inspectUp()
 				else
-					if not self:digMoveDown(safe) then result = false; break end
+					if not self:digMoveDown(safe, noDig) then result = false; break end
 					self:inspect()
 					self:inspectDown()
 				end
@@ -3049,10 +3076,10 @@ function Miner:setNavigateTo(x,y,z)
 	end
 end
 
-function Miner:navigateToPos(x,y,z)
+function Miner:navigateToPos(x,y,z, options)
 	minerLog("NAV: to", x, y, z)
 	-- default miner navigation with safety override near goal
-	local options = {
+	options = options or {
 		safe = true,
 		safeDistance = 3, -- within 3 blocks of goal, safety is ignored if block is not disallowed
 	}
@@ -3060,9 +3087,9 @@ function Miner:navigateToPos(x,y,z)
 	return result
 end
 
-function Miner:navigateInfrontOf(x,y,z,sameYLevel)
+function Miner:navigateInfrontOf(x,y,z,sameYLevel, options)
 	-- navigate to a position in front of the target pos, keeping the target pos in sight
-	local options = {
+	options = options or {
 		safe = true,
 		stepOffset = 1, -- stop 1 block away from goal
 	}
@@ -3145,6 +3172,7 @@ function Miner:navigate(x, y, z, map, options)
 	local safeDistance = options.safeDistance or nil
 	local maxDistance = options.maxDistance or default.pathfinding.maxDistance
 	local stepOffset = options.stepOffset or 0 -- how many steps away from goal to stop
+	local noDig = options.noDig == true
 
 	local checkValidFunc = options.checkValidFunc or checkSafe
 	local followFunc = options.followFunc or function(path, safe, map, stepOffset) 
@@ -3211,7 +3239,7 @@ function Miner:navigate(x, y, z, map, options)
 				end
 
 				if path then 
-					if not followFunc(path,safe,map,stepOffset) then 
+					if not followFunc(path,safe,map,stepOffset,noDig) then 
 						result = false
 					else 
 						if checkGoal() then
@@ -3255,9 +3283,16 @@ function Miner:navigate(x, y, z, map, options)
 						end
 					end
 				else
+					if noDig then
+						print("NO DIG PATH BLOCKED", goal)
+						result = false
+						partsCount = maxParts
+						sleep(0.5)
+						break
+					end
 					-- dig to target
 					safe = ( safeDistance and movesToGoal > safeDistance ) or safe
-					if not self:digToPos(goal.x, goal.y, goal.z, safe) then
+					if not self:digToPos(goal.x, goal.y, goal.z, safe, noDig) then
 						print("NOT SAFE TO DIG TO POS")
 						result = false
 						partsCount = maxParts
@@ -3277,7 +3312,7 @@ function Miner:navigate(x, y, z, map, options)
 	return result
 end
 
-function Miner:followPath(path, safe, map, stepOffset)
+function Miner:followPath(path, safe, map, stepOffset, noDig)
 	-- safe function
 	local currentTask = self:addCheckTask({debug.getinfo(1, "n").name})
 
@@ -3307,18 +3342,18 @@ function Miner:followPath(path, safe, map, stepOffset)
 			end
 
 			if upDown > 0 then
-				if not self:digMoveUp(safe) then result = false; break end
+				if not self:digMoveUp(safe, noDig) then result = false; break end
 			elseif upDown < 0 then
-				if not self:digMoveDown(safe) then result = false; break end
+				if not self:digMoveDown(safe, noDig) then result = false; break end
 			else
 				if moveBackwards then
 					if not self:back() then
 						self:turnInspect(newOr, false)
-						if not self:digMove(safe) then result = false; break end
+						if not self:digMove(safe, noDig) then result = false; break end
 					end
 				else
 					self:turnInspect(newOr, false)
-					if not self:digMove(safe) then result = false; break end
+					if not self:digMove(safe, noDig) then result = false; break end
 				end
 			end
 		end

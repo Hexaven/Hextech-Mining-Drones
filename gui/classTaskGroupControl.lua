@@ -137,7 +137,7 @@ function TaskGroupControl:openOptions()
 	return true
 end
 function TaskGroupControl:callHome()
-	self.taskGroup:addTaskToTurtles("returnHome",{})
+	self.taskGroup:addTaskToTurtles("offloadItemsAtHome",{})
 end
 
 function TaskGroupControl:onResize() -- super override

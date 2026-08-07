@@ -84,6 +84,11 @@ function TaskManager:getProject(projectId)
     return project
 end
 
+function TaskManager:shouldCreateDummyGroupForTask(task)
+    local status = task and task.getStatus and task:getStatus() or (task and task.status)
+    return status == "queued" or status == "running" or status == "no_answer" or status == "stopped"
+end
+
 function TaskManager:addTask(task)
     task:setTaskManager(self)
     task:setNode(self.node)
@@ -94,12 +99,17 @@ function TaskManager:addTask(task)
     if task.groupId then 
         local group = self.groups[task.groupId]
         if not group then
-            group = self:createDummyGroup(task.groupId)
-            if group then
-                group:setStatus("unknown")
-                print("created dummy group", group.shortId, "for task", task.shortId)
+            if self:shouldCreateDummyGroupForTask(task) then
+                group = self:createDummyGroup(task.groupId)
+                if group then
+                    group:setStatus("unknown")
+                    print("created dummy group", group.shortId, "for active task", task.shortId)
+                else
+                    print("task has unknown group id", task.groupId)
+                end
             else
-                print("task has unknown group id", task.groupId)
+                print("clearing stale group id", task.groupId, "for inactive task", task.shortId, task.status)
+                task:setGroup(nil)
             end
         end
         if group then
@@ -181,8 +191,24 @@ function TaskManager:createDummyGroup(id)
     local group = self:createGroup()
     self.groups[group.id] = nil
     group:changeId(id)
+    group.taskName = group.taskName or "unknown"
+    group.funcName = group.funcName or "unknown"
+    group:setStatus("unknown")
     self.groups[id] = group
     return group
+end
+
+function TaskManager:pruneGhostGroups()
+    -- remove unresolved dummy groups that have no tasks and no useful metadata
+    for id, group in pairs(self.groups) do
+        local tasks = group.getTasks and group:getTasks() or nil
+        local taskCount = tasks and #tasks or 0
+        local isGhost = taskCount == 0 and (group.taskName == nil or group.taskName == "" or group.taskName == "unknown")
+        if isGhost then
+            print("pruning ghost group", id)
+            self.groups[id] = nil
+        end
+    end
 end
 
 function TaskManager:saveGroups()
@@ -280,9 +306,12 @@ end
 
 -- direct funcitons
 function TaskManager:callTurtleHome(turtleId)
-    -- cancel current task so returnHome runs immediately
-    self:cancelCurrentTurtleTask(turtleId)
-    return self:addTaskToTurtle(turtleId, "returnHome", {})
+    -- cancel only if there is an active task; avoid sending STOP with no task
+    local currentTask = self:getCurrentTurtleTask(turtleId)
+    if currentTask then
+        self:cancelTask(currentTask)
+    end
+    return self:addTaskToTurtle(turtleId, "offloadItemsAtHome", {})
 end
 function TaskManager:cancelTask(task)
     -- mark task as abandoned, so it wont be restarted
@@ -665,13 +694,18 @@ function TaskManager:onTaskStateUpdate(taskState)
         end
     end
 
-    if task.groupId then 
+    if task and task.groupId then 
         local group = self.groups[task.groupId]
-        if not group then 
-            group = self:createDummyGroup(task.groupId)
-            if group then
-                group:setStatus("unknown")
-                print("adding unknown group", group.shortId, "for task", task.shortId)
+        if not group then
+            if self:shouldCreateDummyGroupForTask(task) then
+                group = self:createDummyGroup(task.groupId)
+                if group then
+                    group:setStatus("unknown")
+                    print("adding unknown group", group.shortId, "for active task", task.shortId)
+                end
+            else
+                print("ignoring stale unknown group", task.groupId, "from task", task.shortId, task.status)
+                task:setGroup(nil)
             end
         end
     end
@@ -693,8 +727,13 @@ function TaskManager:save(fileName)
 
     data.groups = {}
     for id, group in pairs(self.groups) do
-        if group:getStatus() ~= "new" then
+        local tasks = group.getTasks and group:getTasks() or group.tasks or {}
+        local taskName = group.taskName
+        local isGhost = (#tasks == 0) and (not taskName or taskName == "" or taskName == "unknown")
+        if group:getStatus() ~= "new" and not isGhost then
             table.insert(data.groups, group:toSerializableData())
+        elseif isGhost then
+            print("skipping ghost group in task save", id)
         end
     end
 
@@ -740,6 +779,8 @@ function TaskManager:load(fileName)
             for _, group in pairs(self.groups) do
                 group:reattachTasks(self.tasks)
             end
+
+            self:pruneGhostGroups()
 
         end
         return data

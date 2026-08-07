@@ -40,6 +40,7 @@ end
 
 local function loadGroups(fileName)
 	if not fileName then fileName = "runtime/taskGroups.txt" end
+	global.taskGroups = {}
 	local f = fs.open(fileName,"r")
 	local groups = nil
 	if f then
@@ -51,11 +52,16 @@ local function loadGroups(fileName)
 	end
 	if groups then 
 		for _,group in pairs(groups) do
-			local taskGroup = TaskGroup:new(global.turtles,group)
-			global.taskGroups[taskGroup.id] = taskGroup
+			local tasks = group.tasks or {}
+			local taskName = group.taskName
+			local isGhost = (#tasks == 0) and (not taskName or taskName == "" or taskName == "unknown")
+			if not isGhost then
+				local taskGroup = TaskGroup:new(global.turtles,group)
+				global.taskGroups[taskGroup.id] = taskGroup
+			else
+				print("skipping ghost group from file", group.id or "unknown")
+			end
 		end
-	else
-		global.taskGroups = {}
 	end
 end
 

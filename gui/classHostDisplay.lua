@@ -528,7 +528,7 @@ function HostDisplay:globalCallHome()
 	-- cancel all running tasks of the turtles
 	if self.node then
 		for id,turtle in pairs(self.turtles) do
-			self.node:send(id, {"DO", "returnHome"}, false, false)
+			self.node:send(id, {"DO", "offloadItemsAtHome"}, false, false)
 		end
 	end
 end

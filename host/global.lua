@@ -131,13 +131,24 @@ end
 function saveGroups(fileName)
 	print("saving groups")
 	if not fileName then fileName = "runtime/taskGroups.txt" end
-	for _,taskGroup in pairs(global.taskGroups) do
+	local groupsToSave = {}
+	for id, taskGroup in pairs(global.taskGroups) do
+		local tasks = taskGroup.getTasks and taskGroup:getTasks() or taskGroup.tasks or {}
+		local taskName = taskGroup.taskName
+		local isGhost = (#tasks == 0) and (not taskName or taskName == "" or taskName == "unknown")
+		if not isGhost then
+			groupsToSave[id] = taskGroup
+		else
+			print("not saving ghost group", id)
+		end
+	end
+	for _,taskGroup in pairs(groupsToSave) do
 		taskGroup.turtles = nil
 	end
 	local f = fs.open(fileName,"w")
-	f.write(textutils.serialize(global.taskGroups))
+	f.write(textutils.serialize(groupsToSave))
 	f.close()
-	for _,taskGroup in pairs(global.taskGroups) do
+	for _,taskGroup in pairs(groupsToSave) do
 		taskGroup:setTurtles(global.turtles)
 	end
 end

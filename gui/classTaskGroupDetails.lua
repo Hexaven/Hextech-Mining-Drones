@@ -97,7 +97,7 @@ function GroupDetails:openOptions()
 end
 
 function GroupDetails:callHome()
-	self.group:addTaskToTurtles("returnHome",{})
+	self.group:addTaskToTurtles("offloadItemsAtHome",{})
 end
 
 local turtleListY = 15
@@ -141,8 +141,9 @@ function GroupDetails:initialize()
 
 	self.winInfo = BasicWindow:new(2,2,self.width-2,self.turtleList.y - 2)
 	local winInfo = self.winInfo
+	local taskName = group.taskName or group.funcName or "no task"
 
-	winInfo.lblId = Label:new("Group  " .. group.shortId .. " - " .. group.taskName,3,1)
+	winInfo.lblId = Label:new("Group  " .. group.shortId .. " - " .. taskName,3,1)
 	-- row 1 - 16
 
 	local x, y = 3,3
@@ -166,7 +167,7 @@ function GroupDetails:initialize()
 	winInfo.btnOptions = Button:new("options", 21,4,6,1)
 	-- row 28 - 
 
-	winInfo.lblTask = Label:new(group.taskName,30,3)
+	winInfo.lblTask = Label:new(taskName,30,3)
 	winInfo.lblProgress = Label:new("",30,5)
 	winInfo.lblActiveTurtles = Label:new("0/".. group.groupSize,41,4)
 	winInfo.lblStatus = Label:new(group:getStatus(),30,4,group:getStatusColor())
